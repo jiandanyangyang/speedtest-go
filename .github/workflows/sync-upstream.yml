@@ -57,14 +57,13 @@ jobs:
           set -euo pipefail
           TARGET="${{ github.repository }}"
           TMP_DIR=$(mktemp -d)
-          gh release list -R "${UPSTREAM_REPO}" --limit 200 --json tagName,name,isPrerelease,body \
-            -q '.[] | @base64' > "${TMP_DIR}/upstream.txt"
+          gh api "repos/${UPSTREAM_REPO}/releases?per_page=100" --jq '.[] | @base64' > "${TMP_DIR}/upstream.txt"
           while IFS= read -r line; do
             [ -z "${line}" ] && continue
             REL=$(echo "${line}" | base64 -d)
-            TAG=$(echo "${REL}" | jq -r .tagName)
+            TAG=$(echo "${REL}" | jq -r .tag_name)
             NAME=$(echo "${REL}" | jq -r .name)
-            PRERELEASE=$(echo "${REL}" | jq -r .isPrerelease)
+            PRERELEASE=$(echo "${REL}" | jq -r .prerelease)
             BODY=$(echo "${REL}" | jq -r .body)
             if gh release view "${TAG}" -R "${TARGET}" >/dev/null 2>&1; then
               echo "skip (exists): ${TAG}"
